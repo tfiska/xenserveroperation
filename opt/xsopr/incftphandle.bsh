@@ -1,0 +1,25 @@
+# ------------------------------------------------------------------
+#mirroring $FTPSERVERURL to $TMPDIR/$LOCDUMPFOLDER/
+# ------------------------------------------------------------------
+wget -q --no-cache --mirror -p -np -R index.html -X $FTPEXCLUDED --convert-links -P $TMPDIR/$LOCDUMPFOLDER $FTPSERVERURL/ &> $LOGDIR/$LOGFILE.tmp && cat $LOGDIR/$LOGFILE.tmp >> $LOGDIR/$LOGFILE && /bin/rm $LOGDIR/$LOGFILE.tmp
+#Cleanup unnecessary files
+find $TMPDIR/$LOCDUMPFOLDER/ -name '.listing' -exec /bin/rm -rf {} \; >> $LOGDIR/$LOGFILE 
+find $TMPDIR/$LOCDUMPFOLDER/ -name '*.html' -exec /bin/rm -rf {} \; >> $LOGDIR/$LOGFILE 
+find $TMPDIR/$LOCDUMPFOLDER/ -type f -exec chmod +x  {} \; >> $LOGDIR/$LOGFILE
+
+
+# ------------------------------------------------------------------
+#Update Crontab:
+# ------------------------------------------------------------------
+LOCTMPFTPDIR=`find $TMPDIR/$LOCDUMPFOLDER/ -name $REMCRONTABFOLDER  -exec dirname  {} \;`
+LOCTMPREMCRONTABFOLDER="$LOCTMPFTPDIR/$REMCRONTABFOLDER"
+/bin/cp -r $LOCTMPREMCRONTABFOLDER/* /etc/ >> $LOGDIR/$LOGFILE 
+
+# ------------------------------------------------------------------
+#Update Scripts folder
+# ------------------------------------------------------------------
+LOCTMPREMSCRIPTSFOLDER="$LOCTMPFTPDIR/$REMSCRIPTFOLDER"
+find $TMPDIR/$LOCDUMPFOLDER/ -type f -exec chmod +x  {} \;>> $LOGDIR/$LOGFILE 
+if [ ! -d "$LOCSCRIPTDIR" ]; then mkdir $LOCSCRIPTDIR ; fi
+/bin/cp -r $LOCTMPREMSCRIPTSFOLDER/* $LOCSCRIPTDIR >> $LOGDIR/$LOGFILE 
+
