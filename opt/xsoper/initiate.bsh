@@ -1,0 +1,61 @@
+# ------------------------------------------------------------------
+#Retriving variables
+# ------------------------------------------------------------------
+
+PROCSTARTED=`date`
+SCRIPTNAME="${0##*/}"
+LOGFILE=`echo "log_$SCRIPTNAME" | cut -f1 -d'.'`
+SYSTEMCTLBIN=$(whereis systemctl 2>/dev/null | cut -d' ' -f2)
+
+
+
+
+# ------------------------------------------------------------------
+#Initiate variables for localhost hostname and UUID
+# ------------------------------------------------------------------
+HOSTNAME=`hostname`
+HOSTNAMEU=`hostname| tr '[:lower:]' '[:upper:]'`
+HOSTNAMEL=`hostname| tr '[:upper:]' '[:lower:]'`
+HOSTUUID=`xe host-list hostname=$HOSTNAME --minimal`
+if [[ "$HOSTUUID" == "" ]] || [[ ${#HOSTUUID} -gt 36 ]]; then HOSTUUID=`xe host-list hostname=$HOSTNAME | grep "uuid ( RO)" | awk '{print $5}'` ; fi
+if [[ "$HOSTUUID" == "" ]] || [[ ${#HOSTUUID} -gt 36 ]]; then HOSTUUID=`xe host-list name-label=$HOSTNAME --minimal` ; fi
+if [[ "$HOSTUUID" == "" ]] || [[ ${#HOSTUUID} -gt 36 ]]; then HOSTUUID=`xe host-list name-label=$HOSTNAMEU --minimal` ; fi
+if [[ "$HOSTUUID" == "" ]] || [[ ${#HOSTUUID} -gt 36 ]]; then HOSTUUID=`xe host-list name-label=$HOSTNAMEL --minimal` ; fi
+if [[ "$HOSTUUID" == "" ]] || [[ ${#HOSTUUID} -gt 36 ]]; then HOSTUUID=`cat /etc/xensource-inventory |grep "INSTALLATION_UUID"|cut -d"'" -f2` ; fi
+if [[ "$HOSTUUID" == "" ]] || [[ ${#HOSTUUID} -gt 36 ]]
+then
+	echo "Sorry, did not find your local host UUID, (-: Please contact Trygve for Bug fixing :-)"
+	exit
+fi
+
+
+# ------------------------------------------------------------------
+#Initiate variables for POOL
+# ------------------------------------------------------------------
+POOLMASTERUUID=`xe pool-list params=master --minimal`
+POOLMASTERNAME=$(xe host-list uuid=$POOLMASTERUUID params=name-label --minimal)
+POOLUUID=$(xe pool-list --minimal)
+HOSTLIST=$(xe host-list --minimal)
+HOSTISMASTER=`test "$POOLMASTERUUID" = "$HOSTUUID" && echo 1 || echo 0`
+XENVERSION=`xe host-param-get uuid=$HOSTUUID param-name=software-version param-key=product_version --minimal`
+NETWORKMODE=`cat /etc/xensource/network.conf`
+FTPSERVERHOST=$(xe pool-param-get uuid=$POOLUUID param-name=other-config param-key=FTPSERVERHOST) #recheving from pool
+FTPSERVERUSER=$(xe pool-param-get uuid=$POOLUUID param-name=other-config param-key=FTPSERVERUSER) #recheving from pool
+FTPSERVERPASSWORD=$(xe pool-param-get uuid=$POOLUUID param-name=other-config param-key=FTPSERVERPASSWORD) #recheving from pool
+FTPSERVERMAINTFOLDER=$(xe pool-param-get uuid=$POOLUUID param-name=other-config param-key=FTPSERVERMAINTFOLDER) #recheving from pool
+FTPSERVERURL="ftp://$FTPSERVERUSER:$FTPSERVERPASSWORD@$FTPSERVERHOST$FTPSERVERMAINTFOLDER"  #URL for the location of REMCRONTABFOLDER and REMSCRIPTFOLDER
+
+
+
+# ------------------------------------------------------------------
+#Fix hostname to lowercase and remove any domainname (FQDN) from hostname.
+# ------------------------------------------------------------------
+XENHOSTNAME=$(xe host-list uuid=$HOSTUUID params=name-label --minimal | awk '{print tolower($0)}')
+if [ "$HOSTNAME" != "$XENHOSTNAME" ] || [ "$HOSTNAME" == "localhost" ] ; then
+	sysctl kernel.hostname=$XENHOSTNAME
+	HOSTNAME=`hostname`
+fi
+SHORTHOSTNAME=`echo $HOSTNAME | cut -d'.' -f1 | tr '[:upper:]' '[:lower:]'` #Use standard lowercase hostname without FQDN
+
+source "/etc/xsoper/xsoper.conf"
+source "/opt/xsoper/logging.bsh"

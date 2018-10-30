@@ -1,0 +1,15 @@
+
+
+# ------------------------------------------------------------------
+#Initiate Logging
+# ------------------------------------------------------------------
+
+[ -e $LOGDIR/$LOGFILE.7 ] && rm -rf $LOGDIR/$LOGFILE.7
+[ -e $LOGDIR/$LOGFILE.6 ] && mv $LOGDIR/$LOGFILE.6 $LOGDIR/$LOGFILE.7
+[ -e $LOGDIR/$LOGFILE.5 ] && mv $LOGDIR/$LOGFILE.5 $LOGDIR/$LOGFILE.6
+[ -e $LOGDIR/$LOGFILE.4 ] && mv $LOGDIR/$LOGFILE.4 $LOGDIR/$LOGFILE.5
+[ -e $LOGDIR/$LOGFILE.3 ] && mv $LOGDIR/$LOGFILE.3 $LOGDIR/$LOGFILE.4
+[ -e $LOGDIR/$LOGFILE.2 ] && mv $LOGDIR/$LOGFILE.2 $LOGDIR/$LOGFILE.3
+[ -e $LOGDIR/$LOGFILE.1 ] && mv $LOGDIR/$LOGFILE.1 $LOGDIR/$LOGFILE.2
+[ -e $LOGDIR/$LOGFILE ] && mv $LOGDIR/$LOGFILE $LOGDIR/$LOGFILE.1
+echo $LOGHEADER >> $LOGDIR/$LOGFILE
