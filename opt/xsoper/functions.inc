@@ -256,3 +256,22 @@ function sshsettings {
   xe host-param-set uuid=$HOSTUUID name-label=$SHORTHOSTNAME
 
 }
+
+function fixiscsimp {
+	for SRUUID in $(xe sr-list type=lvmoiscsi --minimal |tr "," "\n")
+do
+  for PBRUUID in $(xe pbd-list sr-uuid=$SRUUID host-name-label=$(hostname) --minimal | tr "," "\n")
+  do
+    PBDMULTIHOMELIST=$(xe pbd-param-get uuid=$PBRUUID param-name=device-config param-key=multihomelist --minimal |tr "," "\n" | cut -d: -f1 | tr "\n" ";"|sed "s/^\///;s/\;$//")
+    PBDMULTIHOMECOUNT=$(echo $PBDMULTIHOMELIST |tr ";" "\n" | wc -l)
+    CONNECTEDLIST=$(iscsiadm -m session | grep -Po '[0-9.]{7,15}'|tr "\n" ";")
+    for iscsiip in $(echo $PBDMULTIHOMELIST |tr ";" "\n" )
+    do
+	  if [[ $CONNECTEDLIST != *$iscsiip* ]]
+	  then
+        iscsiadm -m node -T $(iscsiadm -m discovery --type sendtargets --portal $iscsiip | cut -f2 -d" ") -p $iscsiip -l
+	  fi
+    done
+  done
+done
+}
